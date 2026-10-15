@@ -94,6 +94,13 @@ type ProfileRow = {
   ins_linkedin: string | null;
 };
 
+/** 4432440155 or (443) 244-0155 or +1 443… → 443-244-0155, the site's style. */
+function formatPhone(raw: string | null): string {
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+  return digits.length === 10 ? `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}` : raw.trim();
+}
+
 function toProducer(r: ProfileRow): Producer | null {
   if (!r.ins_slug || !r.full_name) return null;
   const licenses = (r.ins_lines ?? []).filter((l): l is LicenseType => l === 'pc' || l === 'life');
@@ -107,7 +114,7 @@ function toProducer(r: ProfileRow): Producer | null {
     licenses,
     statesLicensed: (r.ins_states ?? []).map((s) => s.toUpperCase()),
     npn: r.npn ?? '',
-    phone: r.phone ?? '',
+    phone: formatPhone(r.phone),
     email: r.email ?? '',
     bio: (r.bio ?? '')
       .split(/\n\s*\n/)
