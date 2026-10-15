@@ -40,8 +40,10 @@ const STEPS = [
   ['04 — Reviewed every year', 'Renewal comes with a call, not a surprise. We reshop when the market moves against you.'],
 ];
 
-export default function Home() {
-  const producers = getActiveProducers();
+export const revalidate = 300;
+
+export default async function Home() {
+  const producers = await getActiveProducers();
 
   return (
     <>
@@ -302,8 +304,8 @@ export default function Home() {
                   lineHeight: 1.6,
                 }}
               >
-                No producers are published yet. Add them to <code>lib/producers.ts</code> (or point that file at the
-                REVOL Team profile table) and their pages, this directory and their quote routing all come up at once.
+                Our producers are being set up. In the meantime, start a quote above and a licensed producer will follow
+                up the same business day.
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 20 }}>
@@ -342,7 +344,7 @@ export default function Home() {
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700 }}>{p.name}</div>
                       <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 2 }}>{licenseLabel(p)}</div>
                       <div style={{ fontSize: 13, color: 'var(--muted-2)', marginTop: 6 }}>
-                        Licensed in {p.statesLicensed.join(', ')}
+                        {p.statesLicensed.length > 0 ? `Licensed in ${p.statesLicensed.join(', ')}` : ''}
                       </div>
                     </div>
                   </Link>

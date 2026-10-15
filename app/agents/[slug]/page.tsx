@@ -8,13 +8,15 @@ import QuoteChooser from '@/components/QuoteChooser';
 import CarrierWall from '@/components/CarrierWall';
 import { getActiveProducers, getProducer, hasPC, hasLife, licenseLabel } from '@/lib/producers';
 
-export function generateStaticParams() {
-  return getActiveProducers().map((p) => ({ slug: p.slug }));
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  return (await getActiveProducers()).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const p = getProducer(slug);
+  const p = await getProducer(slug);
   if (!p) return { title: 'Producer not found' };
   return {
     title: `${p.name} — ${licenseLabel(p)}`,
@@ -24,8 +26,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProducerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = getProducer(slug);
-  if (!p) notFound();
+  const found = await getProducer(slug);
+  if (!found) notFound();
+  const p = found;
 
   const pc = hasPC(p);
   const life = hasLife(p);
@@ -95,8 +98,8 @@ export default async function ProducerPage({ params }: { params: Promise<{ slug:
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
                 {pc && <Chip solid="var(--blue)">Property &amp; casualty</Chip>}
                 {life && <Chip solid="var(--green)">Life &amp; health</Chip>}
-                <Chip>Licensed in {p.statesLicensed.join(', ')}</Chip>
-                <Chip>NPN {p.npn}</Chip>
+                {p.statesLicensed.length > 0 && <Chip>Licensed in {p.statesLicensed.join(', ')}</Chip>}
+                {p.npn && <Chip>NPN {p.npn}</Chip>}
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
@@ -107,12 +110,16 @@ export default async function ProducerPage({ params }: { params: Promise<{ slug:
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: 15 }}>
-                <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} style={{ color: '#E4EAF2', fontWeight: 500, textDecoration: 'none' }}>
-                  {p.phone}
-                </a>
-                <a href={`mailto:${p.email}`} style={{ color: '#E4EAF2', fontWeight: 500, textDecoration: 'none' }}>
-                  {p.email}
-                </a>
+                {p.phone && (
+                  <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} style={{ color: '#E4EAF2', fontWeight: 500, textDecoration: 'none' }}>
+                    {p.phone}
+                  </a>
+                )}
+                {p.email && (
+                  <a href={`mailto:${p.email}`} style={{ color: '#E4EAF2', fontWeight: 500, textDecoration: 'none' }}>
+                    {p.email}
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -233,7 +240,10 @@ export default async function ProducerPage({ params }: { params: Promise<{ slug:
         <section style={{ background: 'var(--ground)', borderBottom: '1px solid var(--line)' }}>
           <div className="shell" style={{ paddingTop: 'clamp(40px, 4.5vw, 56px)', paddingBottom: 'clamp(40px, 4.5vw, 56px)' }}>
             <h2 style={{ fontSize: 'clamp(21px, 2.2vw, 24px)', fontWeight: 700, marginBottom: 24 }}>Carriers I shop</h2>
-            <CarrierWall only={p.carriers} />
+            <CarrierWall
+              only={p.carriers.length > 0 ? p.carriers : undefined}
+              line={pc && !life ? 'pc' : !pc && life ? 'life' : undefined}
+            />
           </div>
         </section>
       </main>

@@ -12,14 +12,60 @@
 
 import 'server-only';
 
-export function supabaseConfigured(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+/**
+ * Reads an env var and forgives the usual paste mistakes: surrounding
+ * whitespace, a trailing newline, or wrapping quotes copied along with the
+ * value. Returns '' when unset.
+ */
+function env(name: string): string {
+  return (process.env[name] ?? '').trim().replace(/^["']|["']$/g, '').trim();
 }
 
+export function supabaseConfigured(): boolean {
+  return Boolean(env('SUPABASE_URL') && env('SUPABASE_SERVICE_ROLE_KEY'));
+}
+
+/**
+ * The project URL, e.g. https://abcd1234.supabase.co. Also accepts the
+ * "API URL" form with /rest/v1 on the end, since the dashboard shows both.
+ */
 export function supabaseUrl(): string {
-  const url = process.env.SUPABASE_URL;
+  const url = env('SUPABASE_URL');
   if (!url) throw new Error('SUPABASE_URL is not set.');
-  return url.replace(/\/+$/, '');
+  return url.replace(/\/+$/, '').replace(/\/rest\/v1$/, '').replace(/\/+$/, '');
+}
+
+export type KeyKind = 'missing' | 'service_role' | 'secret' | 'anon' | 'publishable' | 'unknown';
+
+/**
+ * What kind of key is in SUPABASE_SERVICE_ROLE_KEY — never the key itself.
+ *
+ * Only `service_role` (legacy) and `secret` (new) work here. An `anon` or
+ * `publishable` key is the easy mistake: it sits right next to the secret
+ * one in the dashboard, and with it every query quietly returns zero rows
+ * instead of failing, because RLS hides everything from a signed-out caller.
+ */
+export function keyKind(): KeyKind {
+  const key = env('SUPABASE_SERVICE_ROLE_KEY');
+  if (!key) return 'missing';
+  if (key.startsWith('sb_secret_')) return 'secret';
+  if (key.startsWith('sb_publishable_')) return 'publishable';
+  if (key.startsWith('eyJ')) {
+    try {
+      const payload = key.split('.')[1] ?? '';
+      const json = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { role?: string };
+      if (json.role === 'service_role') return 'service_role';
+      if (json.role === 'anon') return 'anon';
+    } catch {
+      /* fall through */
+    }
+  }
+  return 'unknown';
+}
+
+export function keyIsServerKey(): boolean {
+  const k = keyKind();
+  return k === 'service_role' || k === 'secret';
 }
 
 /**
@@ -33,7 +79,7 @@ export function supabaseUrl(): string {
  * to handle both.
  */
 export function serviceHeaders(extra?: Record<string, string>): Record<string, string> {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = env('SUPABASE_SERVICE_ROLE_KEY');
   if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set.');
   const isJwt = key.startsWith('eyJ');
   return {
@@ -45,7 +91,7 @@ export function serviceHeaders(extra?: Record<string, string>): Record<string, s
 
 /** Public URL for a file in the public `avatars` bucket. */
 export function avatarUrl(path: string | null | undefined): string | null {
-  if (!path || !process.env.SUPABASE_URL) return null;
+  if (!path || !env('SUPABASE_URL')) return null;
   if (path.startsWith('http')) return path;
   return `${supabaseUrl()}/storage/v1/object/public/avatars/${path.replace(/^\/+/, '')}`;
 }

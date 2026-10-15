@@ -8,8 +8,10 @@ export const metadata = {
   description: 'Licensed REVOL Insurance producers across Maryland, DC, Virginia, Delaware and Pennsylvania.',
 };
 
-export default function AgentsPage() {
-  const producers = getActiveProducers();
+export const revalidate = 300;
+
+export default async function AgentsPage() {
+  const producers = await getActiveProducers();
 
   return (
     <>
@@ -29,8 +31,8 @@ export default function AgentsPage() {
           <div className="shell" style={{ paddingTop: 'clamp(40px, 5vw, 64px)', paddingBottom: 'clamp(48px, 6vw, 80px)' }}>
             {producers.length === 0 ? (
               <div style={{ border: '1px dashed var(--line-2)', borderRadius: 16, padding: 40, color: 'var(--muted)', fontSize: 15, lineHeight: 1.7 }}>
-                No producers are published yet. Add entries to <code>lib/producers.ts</code> — each one gets a page at
-                <code> /agents/&lt;slug&gt;</code>, appears here, and has its quote form routed to its own inbox.
+                Our producers are being set up. In the meantime,{' '}
+                <a href="/quote">start a quote</a> and a licensed producer will follow up the same business day.
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
@@ -46,7 +48,7 @@ export default function AgentsPage() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700 }}>{p.name}</div>
                       <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 2 }}>{licenseLabel(p)}</div>
-                      <div style={{ fontSize: 13, color: 'var(--muted-2)', marginTop: 6 }}>Licensed in {p.statesLicensed.join(', ')}</div>
+                      <div style={{ fontSize: 13, color: 'var(--muted-2)', marginTop: 6 }}>{p.statesLicensed.length > 0 ? `Licensed in ${p.statesLicensed.join(', ')}` : ''}</div>
                     </div>
                   </Link>
                 ))}
