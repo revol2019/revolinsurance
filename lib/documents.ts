@@ -66,24 +66,46 @@ async function rest<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (text ? JSON.parse(text) : null) as T;
 }
 
+type ExistingContact = {
+  id: string;
+  assigned_to: string | null;
+  producer_id?: string | null;
+  insurance_since?: string | null;
+  company?: string;
+};
+
+/**
+ * Finds the person by exact lowercased email (eq, not ilike: underscores in an
+ * email are wildcards to ilike). REVOL Team database update 37 adds the
+ * producer beside the agent; before it is run those columns do not exist, so
+ * this falls back to the old lookup rather than losing the lead.
+ */
+async function findExisting(email: string): Promise<{ row: ExistingContact | null; twoOwners: boolean }> {
+  const match = `email=eq.${encodeURIComponent(email)}&order=created_at.asc&limit=1`;
+  try {
+    const rows = await rest<ExistingContact[]>(`contacts?select=id,assigned_to,producer_id,insurance_since,company&${match}`);
+    return { row: rows[0] ?? null, twoOwners: true };
+  } catch (err) {
+    if (!/producer_id|insurance_since|42703/.test(String(err))) throw err;
+    const rows = await rest<ExistingContact[]>(`contacts?select=id,assigned_to&${match}`);
+    return { row: rows[0] ?? null, twoOwners: false };
+  }
+}
+
 export async function intakeContact(input: IntakeInput): Promise<IntakeResult> {
   const email = input.email.trim().toLowerCase();
 
-  // Match on exact lowercased email so a returning person stays one record.
-  // (eq, not ilike: underscores in an email are wildcards to ilike.)
-  const existing = await rest<{ id: string; assigned_to: string | null }[]>(
-    `contacts?select=id,assigned_to&email=eq.${encodeURIComponent(email)}&limit=1`,
-  );
+  // A returning person stays one record: an earlier quote request, or a past
+  // REVOL buyer or seller whose real estate agent already has them.
+  const { row: existing, twoOwners } = await findExisting(email);
 
   let contactId: string;
   let isNewContact = false;
 
-  if (existing.length > 0) {
-    contactId = existing[0].id;
+  if (existing) {
+    contactId = existing.id;
 
     const patch: Record<string, unknown> = {};
-    // A repeat request from a producer's page claims an unassigned record.
-    if (!existing[0].assigned_to && input.assignedTo) patch.assigned_to = input.assignedTo;
     if (input.currentCarrier) patch.current_carrier = input.currentCarrier;
     const renewal = toIsoDate(input.renewalDate);
     if (renewal) patch.renewal_date = renewal;
@@ -91,15 +113,45 @@ export async function intakeContact(input: IntakeInput): Promise<IntakeResult> {
     patch.consent_text = input.consentText;
     patch.consent_at = new Date().toISOString();
 
+    // Who to tell about a repeat request. Left null when the database does it.
+    let notifyId: string | null = null;
+    if (twoOwners) {
+      const inPipeline = Boolean(existing.insurance_since);
+      // A request from a producer's page puts that producer on the record when
+      // it has none. On a past buyer their agent stays on it, beside them.
+      if (!existing.producer_id && input.assignedTo) patch.producer_id = input.assignedTo;
+      if (!inPipeline) {
+        // Joining the insurance pipeline now. The database tells the producer
+        // (or the queue) and the client's agent.
+        patch.insurance_source = input.source;
+      } else {
+        notifyId = existing.producer_id ?? (existing.company === 'insurance' ? input.assignedTo : null);
+      }
+    } else {
+      // Before update 37: a repeat request from a producer's page claims an unassigned record.
+      if (!existing.assigned_to && input.assignedTo) patch.assigned_to = input.assignedTo;
+      notifyId = existing.assigned_to ?? input.assignedTo;
+    }
+
     await rest(`contacts?id=eq.${contactId}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify(patch),
     });
 
-    // The insert trigger only fires for new contacts, so tell the producer
-    // about a repeat request explicitly.
-    const notifyId = existing[0].assigned_to ?? input.assignedTo;
+    // What they asked for this time, on the record's timeline (needs update 26).
+    if (input.notes) {
+      await rest('activities', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          contact_id: contactId,
+          kind: 'note',
+          body: `Quote request on revolinsurance.com (${input.source}):\n${input.notes}`,
+        }),
+      }).catch((err) => console.error('[intake] request note failed', err));
+    }
+
     if (notifyId) {
       await rest('notifications', {
         method: 'POST',
