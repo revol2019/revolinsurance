@@ -10,6 +10,10 @@ export const AGENCY = {
   phone: '443-275-5533',
   /** Digits only, for tel: links. */
   phoneHref: '+14432755533',
+  /** The agency's own NPN (not a producer's). */
+  npn: '21455781',
+  /** Agency license by state. Add a row when the agency is licensed in another state. */
+  licenses: [{ state: 'MD', number: '3003488992' }],
   address: {
     line1: '1850 York Road, Ste I',
     city: 'Timonium',

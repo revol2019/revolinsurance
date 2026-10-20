@@ -1,4 +1,4 @@
-import LegalPage, { ReviewNote } from '@/components/LegalPage';
+import LegalPage from '@/components/LegalPage';
 import { AGENCY, ADDRESS_LINES } from '@/lib/agency';
 
 export const metadata = { title: 'Privacy' };
@@ -9,7 +9,6 @@ export default function Privacy() {
       title="Privacy"
       intro="What we collect when you ask us for a quote, and what we do with it."
     >
-      <ReviewNote />
       <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>What we collect</h2>
       <p>
         When you submit a quote request we collect the information you type into the form: your name, email

@@ -75,15 +75,13 @@ page that will read as broken.
       shown under the submit button and stored verbatim on every lead. It names
       the button by its label, so `SUBMIT_LABEL` and the sentence must change
       together or not at all.
-- [ ] **State license numbers.** The only remaining footer placeholder.
-      Everything else in `lib/agency.ts` is filled in.
+- [x] **State license numbers.** Agency NPN and MD license are in
+      `lib/agency.ts` (20 Oct 2026); add a row to `licenses` for each new state.
 - [ ] **Headshots.** Stock portraits on producer pages undercut the whole site.
 - [ ] **Claims page.** Carrier claim numbers and links. Must never read as
       though a form submitted to REVOL files the claim.
-- [ ] **Legal pages.** `/privacy`, `/terms` and `/accessibility` now exist and
-      describe what the site actually does, so no footer link 404s. Each carries
-      a visible "needs counsel review" note — have an attorney read them and
-      remove the note.
+- [x] **Legal pages.** `/privacy`, `/terms` and `/accessibility` approved by
+      the broker on 20 Oct 2026; the review notes are removed.
 - [ ] **Medicare content.** If a producer markets Medicare, that page needs its
       own CMS compliance review.
 

@@ -229,7 +229,10 @@ export function Footer() {
             color: 'var(--muted-2)',
           }}
         >
-          <div>© {new Date().getFullYear()} {AGENCY.legalName}. [State license numbers.]</div>
+          <div>
+            © {new Date().getFullYear()} {AGENCY.legalName}. Agency NPN {AGENCY.npn}
+            {AGENCY.licenses.map((l) => ` · ${l.state} Lic. No. ${l.number}`).join('')}
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
             <Link href="/privacy" style={{ textDecoration: 'none', color: 'var(--muted-2)' }}>Privacy</Link>
             <Link href="/terms" style={{ textDecoration: 'none', color: 'var(--muted-2)' }}>Terms</Link>

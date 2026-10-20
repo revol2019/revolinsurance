@@ -29,24 +29,3 @@ export default function LegalPage({
     </>
   );
 }
-
-export function ReviewNote() {
-  return (
-    <div
-      style={{
-        border: '1px dashed var(--line-2)',
-        borderRadius: 12,
-        padding: 20,
-        marginBottom: 28,
-        fontSize: 14,
-        lineHeight: 1.6,
-        color: 'var(--muted-2)',
-        background: 'var(--ground)',
-      }}
-    >
-      <strong style={{ color: 'var(--ink-2)' }}>Needs counsel review.</strong> This page exists so the footer link
-      resolves rather than 404s, and describes what the site actually does today. It has not been reviewed by an
-      attorney and is not a substitute for one.
-    </div>
-  );
-}

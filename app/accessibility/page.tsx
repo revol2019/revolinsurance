@@ -1,4 +1,4 @@
-import LegalPage, { ReviewNote } from '@/components/LegalPage';
+import LegalPage from '@/components/LegalPage';
 import { AGENCY } from '@/lib/agency';
 
 export const metadata = { title: 'Accessibility' };
@@ -9,7 +9,6 @@ export default function Accessibility() {
       title="Accessibility"
       intro="We want this site usable by everyone, and we want to hear about it when it is not."
     >
-      <ReviewNote />
       <p>
         This site is built to work with a keyboard alone, with screen readers, and at phone widths. Form fields
         carry real labels, interactive elements are real buttons and links, and text is sized for contrast against

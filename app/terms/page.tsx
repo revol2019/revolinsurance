@@ -1,4 +1,4 @@
-import LegalPage, { ReviewNote } from '@/components/LegalPage';
+import LegalPage from '@/components/LegalPage';
 import { AGENCY } from '@/lib/agency';
 
 export const metadata = { title: 'Terms' };
@@ -6,7 +6,6 @@ export const metadata = { title: 'Terms' };
 export default function Terms() {
   return (
     <LegalPage title="Terms of use" intro="The terms that apply to this website.">
-      <ReviewNote />
       <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>This site is not an offer of coverage</h2>
       <p>
         Nothing on this website binds coverage, and submitting a form is not an application. Coverage exists only
