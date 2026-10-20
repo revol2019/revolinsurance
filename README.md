@@ -55,9 +55,21 @@ have it; a locked-down sandbox may not.
 4. Add `revolinsurance.com` and `www.revolinsurance.com` under the project's
    Domains tab, then point DNS at the records Vercel shows.
 
-Subdomains per producer (`lastname.revolinsurance.com`) would require moving the
-apex domain's nameservers to Vercel so it can issue wildcard SSL. Paths
-(`/agents/lastname`) are what this build uses and what the plan recommends.
+Every producer page has three addresses, all branded to them and all sending
+leads to them in REVOL Team:
+
+- `revolinsurance.com/<page address>` (the short link to share), and
+  `/<page address>/home-auto`, `/auto`, `/new-home`, `/life`
+- `revolinsurance.com/agents/<page address>/…` (the same pages)
+- `<page address>.revolinsurance.com` and `…/auto` etc., once its DNS exists:
+  add the subdomain under the project's Domains tab in Vercel, then the CNAME
+  record Vercel shows at the DNS host. `proxy.ts` maps the subdomain to the
+  page. A wildcard (`*.revolinsurance.com`, every producer automatically)
+  needs the domain's nameservers moved to Vercel for wildcard SSL.
+
+The page address is set in REVOL Team (Admin → People → Insurance licenses).
+It cannot be one of the site's own paths (`RESERVED_ADDRESSES` in
+`lib/landing.ts`), and changing it breaks links already shared.
 
 ## Before this goes live
 

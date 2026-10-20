@@ -99,3 +99,10 @@ export function ratingStates(states: string[]): StateCode[] {
 export function landingPath(key: LandingKey, slug?: string | null) {
   return slug ? `/agents/${slug}/${key}` : `/${key}`;
 }
+
+/**
+ * Top-level paths the site uses. A producer's page address cannot be one of
+ * these, or their short link (revolinsurance.com/<address>) would open the
+ * site's page instead. REVOL Team keeps the same list.
+ */
+export const RESERVED_ADDRESSES = ['agents', 'quote', 'claims', 'privacy', 'terms', 'accessibility', 'api', ...LANDING_KEYS];
