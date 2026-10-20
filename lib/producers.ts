@@ -69,7 +69,13 @@ const PUBLIC_COLUMNS = [
   'ins_instagram',
   'ins_facebook',
   'ins_linkedin',
+  // The producer's insurance email (REVOL Team update 38). Shown on their page
+  // and where their leads go; blank falls back to their main email.
+  'ins_email',
 ].join(',');
+
+/** The same list without ins_email, for a database that does not have it yet. */
+const COLUMNS_BEFORE_38 = PUBLIC_COLUMNS.split(',').filter((c) => c !== 'ins_email').join(',');
 
 type ProfileRow = {
   id: string;
@@ -92,6 +98,7 @@ type ProfileRow = {
   ins_instagram: string | null;
   ins_facebook: string | null;
   ins_linkedin: string | null;
+  ins_email?: string | null;
 };
 
 /** 4432440155 or (443) 244-0155 or +1 443… → 443-244-0155, the site's style. */
@@ -115,7 +122,7 @@ function toProducer(r: ProfileRow): Producer | null {
     statesLicensed: (r.ins_states ?? []).map((s) => s.toUpperCase()),
     npn: r.npn ?? '',
     phone: formatPhone(r.phone),
-    email: r.email ?? '',
+    email: r.ins_email?.trim() || r.email || '',
     bio: (r.bio ?? '')
       .split(/\n\s*\n/)
       .map((p) => p.trim())
@@ -162,17 +169,26 @@ export async function queryProducers(fresh = false): Promise<ProducerQueryResult
   }
 
   try {
-    const q = new URLSearchParams({
-      select: PUBLIC_COLUMNS,
-      active: 'is.true',
-      sells_insurance: 'is.true',
-      ins_page_published: 'is.true',
-      order: 'full_name.asc',
-    });
-    const res = await fetch(`${supabaseUrl()}/rest/v1/profiles?${q}`, {
-      headers: serviceHeaders(),
-      ...(fresh ? { cache: 'no-store' as const } : { next: { revalidate: 300 } }),
-    });
+    const request = (columns: string) =>
+      fetch(
+        `${supabaseUrl()}/rest/v1/profiles?${new URLSearchParams({
+          select: columns,
+          active: 'is.true',
+          sells_insurance: 'is.true',
+          ins_page_published: 'is.true',
+          order: 'full_name.asc',
+        })}`,
+        {
+          headers: serviceHeaders(),
+          ...(fresh ? { cache: 'no-store' as const } : { next: { revalidate: 300 } }),
+        },
+      );
+    let res = await request(PUBLIC_COLUMNS);
+    // Before update 38 there is no ins_email column; ask again without it rather than show no producers.
+    if (res.status === 400) {
+      const peek = await res.clone().text().catch(() => '');
+      if (/ins_email/.test(peek)) res = await request(COLUMNS_BEFORE_38);
+    }
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       let message = body.slice(0, 300);
