@@ -32,7 +32,13 @@ type LeadPayload = {
   lines?: string[];
   consentText?: string;
   company?: string;
+  /** From a rate check or calculator: the page and what they priced, in plain English. */
+  quote?: { title?: string; lines?: string[] };
+  /** Ad attribution for the visit: UTMs, click IDs, landing page, referrer. */
+  attribution?: Record<string, string>;
 };
+
+const ATTR_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid', 'landingPage', 'referrer'];
 
 function clean(value: unknown, max = 500): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -73,6 +79,20 @@ export async function POST(req: NextRequest) {
   const note = clean(body.note, 2000);
   const address = clean(body.address, 240);
   const consentText = clean(body.consentText, 1000);
+  const zip = clean(body.zip, 10).replace(/[^\d]/g, '').slice(0, 5);
+  const quoteTitle = clean(body.quote?.title, 80);
+  const quoteLines = Array.isArray(body.quote?.lines) ? body.quote!.lines.slice(0, 8).map((l) => clean(l, 400)).filter(Boolean) : [];
+  const attr = body.attribution && typeof body.attribution === 'object' ? body.attribution : {};
+  const adBits = ATTR_KEYS.filter((k) => !['landingPage', 'referrer'].includes(k)).map((k) => (clean(attr[k], 200) ? `${k}=${clean(attr[k], 200)}` : '')).filter(Boolean);
+  const landing = clean(attr.landingPage, 300);
+  const referrer = clean(attr.referrer, 300);
+  // What the producer reads on the client record: the tool's answers and the ad that brought them.
+  const toolNote = [
+    quoteTitle && `From: ${quoteTitle}${landing ? ` (${landing})` : ''}`,
+    ...quoteLines,
+    adBits.length > 0 && `Ad: ${adBits.join(' · ')}`,
+    referrer && `Referrer: ${referrer}`,
+  ].filter(Boolean) as string[];
   const receivedAt = new Date().toISOString();
   const problems: string[] = [];
 
@@ -91,8 +111,10 @@ export async function POST(req: NextRequest) {
         consentText,
         notes: [
           lines.length > 0 && `Wants quoted: ${lines.join(', ')}`,
+          zip && !quoteLines.length && `ZIP: ${zip}`,
           timing && `Timing: ${timing}`,
           note && `Note: ${note}`,
+          ...toolNote,
         ]
           .filter(Boolean)
           .join('\n'),
@@ -115,7 +137,7 @@ export async function POST(req: NextRequest) {
           from: process.env.RESEND_FROM ?? 'REVOL Insurance <onboarding@resend.dev>',
           to: [to],
           reply_to: email,
-          subject: `New lead — ${firstName} ${lastName}${producer ? ` (for ${producer.name})` : ' (unassigned)'}`,
+          subject: `New lead${quoteTitle ? ` (${quoteTitle})` : ''} — ${firstName} ${lastName}${producer ? ` (for ${producer.name})` : ' (unassigned)'}`,
           text: [
             `${firstName} ${lastName}`,
             `${email} · ${phone}`,
@@ -123,6 +145,7 @@ export async function POST(req: NextRequest) {
             lines.length > 0 && `Wants quoted: ${lines.join(', ')}`,
             timing && `Timing: ${timing}`,
             note && `Note: ${note}`,
+            ...(toolNote.length ? ['', ...toolNote] : []),
             '',
             contactId ? `In REVOL Team: https://revolteam.com/contacts/${contactId}` : 'Not yet in REVOL Team — enter manually.',
             `Source: ${source}`,
@@ -145,7 +168,7 @@ export async function POST(req: NextRequest) {
     console.error(
       '[lead] delivery problems:',
       problems.join(', '),
-      JSON.stringify({ receivedAt, source, producer: producer?.slug ?? null, firstName, lastName, email, phone, address, lines, timing, note, contactId }),
+      JSON.stringify({ receivedAt, source, producer: producer?.slug ?? null, firstName, lastName, email, phone, address, lines, timing, note, quote: toolNote, contactId }),
     );
   }
 

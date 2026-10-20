@@ -85,6 +85,45 @@ page that will read as broken.
 - [ ] **Medicare content.** If a producer markets Medicare, that page needs its
       own CMS compliance review.
 
+## Landing pages and the instant quote tools
+
+Every published producer gets landing pages for ads, social posts and email,
+chosen by license. The same pages exist for the agency, whose leads land in
+REVOL Team's unassigned queue.
+
+| Page | Producer | Agency | Tools |
+|---|---|---|---|
+| Home + auto rate check | `/agents/<slug>/home-auto` | `/home-auto` | Rate check (bundle, auto, home), worksheet, limits band, buying timeline |
+| Auto rate check | `/agents/<slug>/auto` | `/auto` | Rate check (auto), liability limits tool, auto worksheet |
+| Buying a home | `/agents/<slug>/new-home` | `/new-home` | Rebuild cost estimator, rate check (home), binder timeline, home worksheet |
+| Life insurance needs | `/agents/<slug>/life` | `/life` | Needs calculator (coverage amount and term, never a premium) |
+
+P&C pages need a property & casualty license, the life page a life license.
+The producer's main page links to theirs under "Instant quote tools", and REVOL
+Team lists them on the producer's own profile.
+
+**The rate check** (`components/rate/RateCheck.tsx`) is the original REVOL
+Rate Check rebuilt: one question at a time, a range across the carriers,
+bundle vs. best split, what moves the number, and a carrier-by-carrier
+breakdown that unlocks with contact details. The lead posts to `/api/lead` with
+the answers and estimate in plain English and the visit's ad tags, so the
+client record in REVOL Team says what they priced and which ad brought them.
+Consent is the approved `CONSENT_TEXT`, given by clicking `SUBMIT_LABEL`.
+
+**Ad links.** `?zip=21093` fills the ZIP; `?type=auto|home|bundle` picks the
+path; ending a link in `#rate-check` opens the rate check straight away. UTMs and
+click IDs (gclid, fbclid, msclkid…) are saved on the lead. Analytics events
+(`rate_check_start`, `rate_check_step`, `rate_check_results`, `generate_lead`)
+go to `dataLayer`, so Google Tag Manager or a pixel picks them up when added.
+
+**The numbers are placeholders.** `lib/rating.ts` holds the rating factors and
+each carrier's rate level, carried over from the original site. They follow the
+shape of filed rating manuals, but the values are illustrative. Replace them
+with factors from the carriers' SERFF filings, keeping the shape. Until then
+`SHOW_CARRIER_NAMES` stays `false`: clients see Carrier A, B, C… rather than a
+real company's name beside a price it did not file. Flip it once the levels are
+real.
+
 ## Lead routing
 
 `POST /api/lead` takes every form. `POST /api/formal-quote` takes the dec page version.

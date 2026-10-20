@@ -121,6 +121,10 @@ export default async function Home() {
                 Two minutes. A licensed producer follows up the same day.
               </p>
               <QuoteForm variant="short" source="home-hero" />
+              <p style={{ margin: '16px 0 0', fontSize: 14, color: 'var(--muted)' }}>
+                Rather see a price range first?{' '}
+                <Link href="/home-auto" style={{ fontWeight: 600 }}>Run the 60-second rate check →</Link>
+              </p>
             </div>
           </div>
         </section>

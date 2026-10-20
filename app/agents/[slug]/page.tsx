@@ -7,6 +7,7 @@ import QuoteForm from '@/components/QuoteForm';
 import QuoteChooser from '@/components/QuoteChooser';
 import CarrierWall from '@/components/CarrierWall';
 import { getActiveProducers, getProducer, hasPC, hasLife, licenseLabel } from '@/lib/producers';
+import { LANDINGS, landingPath, landingsFor } from '@/lib/landing';
 
 export const revalidate = 300;
 
@@ -214,6 +215,31 @@ export default async function ProducerPage({ params }: { params: Promise<{ slug:
                   </a>
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* Instant quote tools: this producer's landing pages */}
+        <section style={{ background: 'var(--ground)', borderBottom: '1px solid var(--line)' }}>
+          <div className="shell" style={{ paddingTop: 'clamp(40px, 4.5vw, 56px)', paddingBottom: 'clamp(40px, 4.5vw, 56px)' }}>
+            <h2 style={{ fontSize: 'clamp(22px, 2.4vw, 26px)', fontWeight: 700, marginBottom: 6 }}>Instant quote tools</h2>
+            <p style={{ margin: '0 0 22px', color: 'var(--muted)', fontSize: 16 }}>Run the numbers yourself first. Your answers come to me only if you want real prices.</p>
+            <div className="cards">
+              {landingsFor(p).map((k) => (
+                <Link
+                  key={k}
+                  href={landingPath(k, p.slug)}
+                  className="card"
+                  style={{ padding: 24, textDecoration: 'none', color: 'var(--ink)', background: 'var(--paper)' }}
+                >
+                  <span className="eyebrow" style={{ color: LANDINGS[k].line === 'life' ? 'var(--green)' : 'var(--blue)', marginBottom: 8 }}>
+                    {LANDINGS[k].line === 'life' ? 'Life' : 'Home and auto'}
+                  </span>
+                  <span style={{ fontSize: 19, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{LANDINGS[k].name}</span>
+                  <span style={{ marginTop: 6, color: 'var(--muted)', fontSize: 15, lineHeight: 1.55 }}>{LANDINGS[k].blurb}</span>
+                  <span style={{ marginTop: 14, color: LANDINGS[k].line === 'life' ? 'var(--green)' : 'var(--blue)', fontWeight: 600, fontSize: 15 }}>Open →</span>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
