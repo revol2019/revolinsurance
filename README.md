@@ -233,3 +233,20 @@ Notification links point at `/contacts/<id>`, which will 404 until that page
 exists. Needed there: a contacts list with the unassigned queue and a Claim
 button, a contact detail page, and a document viewer that mints signed URLs
 as the signed-in producer and writes to `client_document_access`.
+
+## Campaign kits
+
+`lib/campaigns.ts` holds three offers producers can run as ads: **Young driver
+savings**, **Free policy review** and **Rate went up?**. Each has a landing page
+(`/agents/<slug>/<campaign>`, short `revolinsurance.com/<slug>/<campaign>`, and
+an agency version at `/<campaign>`), branded ad images from
+`/api/creative/<campaign>?slug=&size=square|story|link`, and all the ad copy,
+captions and launch steps per network. REVOL Team's **Launch a campaign** page
+reads everything from `/api/campaigns?slug=`, so the copy lives here only.
+
+Ad platforms count a lead when the rate check fires `generate_lead`. Set
+`NEXT_PUBLIC_GA_ID` (GA4) and `NEXT_PUBLIC_META_PIXEL_ID` in Vercel to turn the
+tags on; one pixel and one GA property cover every producer.
+
+Compliance notes are at the top of `lib/campaigns.ts`. Every savings claim must
+be true for REVOL's own book and carry "savings vary".

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Landing from '@/components/landing/Landing';
-import { LANDINGS, ratingStates, type LandingKey } from '@/lib/landing';
+import CampaignLanding from '@/components/landing/CampaignLanding';
+import { LANDINGS, isCampaignKey, ratingStates, type LandingKey } from '@/lib/landing';
 import { getActiveProducers } from '@/lib/producers';
 
 /** The agency's own version of a landing page: leads go to REVOL Team's unassigned queue. */
@@ -14,5 +15,6 @@ export async function AgencyLanding({ page }: { page: LandingKey }) {
   const states = ratingStates(Array.from(new Set(producers.flatMap((p) => p.statesLicensed))));
   const order = ['MD', 'VA', 'DC', 'DE', 'PA'];
   states.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  if (isCampaignKey(page)) return <CampaignLanding campaign={page} producer={null} states={states.length ? states : ['MD']} />;
   return <Landing page={page} producer={null} states={states.length ? states : ['MD']} />;
 }

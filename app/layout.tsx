@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Archivo, Figtree } from 'next/font/google';
 import './globals.css';
+import Tracking from '@/components/Tracking';
 
 const display = Archivo({
   subsets: ['latin'],
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <a className="skip-link" href="#main">Skip to content</a>
         {children}
+        <Tracking />
       </body>
     </html>
   );

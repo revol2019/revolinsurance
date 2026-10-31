@@ -14,7 +14,11 @@
 import type { Producer } from './producers';
 import type { QuotePath, StateCode } from './rating';
 
-export type LandingKey = 'home-auto' | 'auto' | 'new-home' | 'life';
+import { CAMPAIGNS, CAMPAIGN_KEYS, isCampaignKey, type CampaignKey } from './campaigns';
+
+/** The four tool pages. Campaign pages (lib/campaigns.ts) share the routes but have their own component. */
+export type ToolKey = 'home-auto' | 'auto' | 'new-home' | 'life';
+export type LandingKey = ToolKey | CampaignKey;
 
 export type LandingDef = {
   key: LandingKey;
@@ -31,7 +35,7 @@ export type LandingDef = {
   metaDescription: string;
 };
 
-export const LANDINGS: Record<LandingKey, LandingDef> = {
+export const LANDINGS = {
   'home-auto': {
     key: 'home-auto',
     line: 'pc',
@@ -76,9 +80,27 @@ export const LANDINGS: Record<LandingKey, LandingDef> = {
     metaTitle: 'How much life insurance do you need?',
     metaDescription: 'Work out how much life insurance your family needs in two minutes, then get real quotes from a local agent.',
   },
-};
+} as unknown as Record<LandingKey, LandingDef>;
+
+// Campaign pages (lib/campaigns.ts) use the same routes, short links and
+// producer license rules. All three are property & casualty.
+for (const key of CAMPAIGN_KEYS) {
+  const c = CAMPAIGNS[key];
+  LANDINGS[key] = {
+    key,
+    line: 'pc',
+    name: c.name,
+    use: c.pitch,
+    blurb: c.sub.replace(/\{\{first\}\}/g, 'Your agent').replace(/\{\{carriers\}\}/g, '10'),
+    defaultPath: c.path,
+    paths: c.path === 'auto' ? ['auto'] : ['bundle', 'auto', 'home'],
+    metaTitle: c.name + ' · REVOL Insurance',
+    metaDescription: c.sub.replace(/\{\{first\}\}/g, 'A local agent').replace(/\{\{carriers\}\}/g, '10'),
+  };
+}
 
 export const LANDING_KEYS = Object.keys(LANDINGS) as LandingKey[];
+export { isCampaignKey };
 
 export function isLandingKey(v: string): v is LandingKey {
   return (LANDING_KEYS as string[]).includes(v);

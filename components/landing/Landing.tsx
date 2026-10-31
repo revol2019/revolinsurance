@@ -9,12 +9,12 @@ import { LimitsTool, RebuildTool, Worksheet } from '@/components/rate/Tools';
 import type { LandingContext } from '@/components/rate/shared';
 import { AGENCY, ADDRESS_LINES } from '@/lib/agency';
 import { approvedCarriers } from '@/lib/carriers';
-import { LANDINGS, landingPath, type LandingKey } from '@/lib/landing';
+import { LANDINGS, landingPath, type LandingKey, type ToolKey } from '@/lib/landing';
 import type { Producer } from '@/lib/producers';
 import { STATE_MINIMUMS, STATE_NAMES, type StateCode } from '@/lib/rating';
 import './landing.css';
 
-const HERO: Record<LandingKey, string> = {
+const HERO: Record<ToolKey, string> = {
   'home-auto': '/lp/hero-umbrella-home.webp',
   auto: '/photos/agent-driving.jpg',
   'new-home': '/lp/agent-couple-home.webp',
@@ -30,7 +30,7 @@ function listStates(states: StateCode[]) {
  * One landing page: a producer's (or the agency's) page built around an
  * instant quote tool. Server-rendered; the tools are client islands.
  */
-export default function Landing({ page, producer, states }: { page: LandingKey; producer: Producer | null; states: StateCode[] }) {
+export default function Landing({ page, producer, states }: { page: ToolKey; producer: Producer | null; states: StateCode[] }) {
   const def = LANDINGS[page];
   const first = producer ? producer.name.split(' ')[0] : null;
   const who = first ?? 'one licensed REVOL agent';
@@ -299,7 +299,7 @@ export default function Landing({ page, producer, states }: { page: LandingKey; 
   );
 }
 
-function SecHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
+export function SecHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
   return (
     <div className="lp-sechead">
       <div className="lp-eyebrow">{eyebrow}</div>
@@ -336,7 +336,7 @@ function CoverageCards({ pc }: { pc: string[] }) {
   );
 }
 
-function Compare({ n, who }: { n: number; who: string }) {
+export function Compare({ n, who }: { n: number; who: string }) {
   const rows: [string, [string, string], [string, string], [string, string]][] = [
     ['Carriers compared', ['y', `${n} appointed carriers, priced locally`], ['y', 'Many, through partner networks'], ['n', 'One company only']],
     ['Who contacts you', ['y', who === 'One licensed REVOL agent' ? who : `${who}, and only ${who}`], ['m', 'Often several partner agents or carriers'], ['y', 'That company’s agent']],
@@ -426,7 +426,7 @@ function LifeTypes() {
   );
 }
 
-function AgentSection({ producer, first, phone, tel, states }: { producer: Producer | null; first: string | null; phone: string; tel: string; states: StateCode[] }) {
+export function AgentSection({ producer, first, phone, tel, states }: { producer: Producer | null; first: string | null; phone: string; tel: string; states: StateCode[] }) {
   if (!producer) {
     return (
       <section className="lp-sec lp-white">
@@ -466,11 +466,11 @@ function AgentSection({ producer, first, phone, tel, states }: { producer: Produ
   );
 }
 
-function Faq({ page, who, Who, states, carriers, phone }: { page: LandingKey; who: string; Who: string; states: StateCode[]; carriers: string[]; phone: string }) {
+function Faq({ page, who, Who, states, carriers, phone }: { page: ToolKey; who: string; Who: string; states: StateCode[]; carriers: string[]; phone: string }) {
   const minimums = (states.length ? states : (['MD'] as StateCode[])).map((s) => `${STATE_NAMES[s]} ${STATE_MINIMUMS[s]}`).join('; ');
   const estimate: [string, string] = ['Is the rate check a real quote?', `No. It is an estimated range built from typical rating factors, so you can see the landscape before talking to anyone. ${Who} then confirms real, bindable prices with each carrier using your full driving, claims and property details.`];
   const calls: [string, string] = ['Will ten agents call me after I enter my number?', `No. Your information goes to ${who}. It is not sold to a lead marketplace.`];
-  const sets: Record<LandingKey, [string, string][]> = {
+  const sets: Record<ToolKey, [string, string][]> = {
     'home-auto': [
       estimate,
       calls,
