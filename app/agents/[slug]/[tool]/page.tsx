@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Landing from '@/components/landing/Landing';
-import { LANDINGS, isLandingKey, landingsFor, ratingStates } from '@/lib/landing';
+import CampaignLanding from '@/components/landing/CampaignLanding';
+import { LANDINGS, isCampaignKey, isLandingKey, landingsFor, ratingStates } from '@/lib/landing';
 import { getActiveProducers, getProducer } from '@/lib/producers';
 
 export const revalidate = 300;
@@ -29,5 +30,6 @@ export default async function ProducerLanding({ params }: { params: Promise<{ sl
   const p = await getProducer(slug);
   if (!p || !isLandingKey(tool) || !landingsFor(p).includes(tool)) notFound();
   const states = ratingStates(p.statesLicensed);
+  if (isCampaignKey(tool)) return <CampaignLanding campaign={tool} producer={p} states={states.length ? states : ['MD']} />;
   return <Landing page={tool} producer={p} states={states.length ? states : ['MD']} />;
 }
