@@ -22,9 +22,27 @@ export const revalidate = 3600;
  */
 const SIZES = { square: [1080, 1080], story: [1080, 1920], link: [1200, 628] } as const;
 
-async function font(weight: 700 | 800) {
-  // Archivo, the site's display face, from Google Fonts. If the fetch fails the
-  // image still renders in the built-in sans; an ad image must never 500.
+type Weight = 600 | 700 | 800;
+
+/**
+ * Archivo, the site's display face, shipped with the site (assets/fonts, SIL
+ * Open Font License) so every image renders in it. Google Fonts only if a file
+ * is missing; failing both, the built-in sans. An ad image must never 500.
+ */
+const fontCache = new Map<Weight, Promise<ArrayBuffer | null>>();
+function font(weight: Weight) {
+  if (!fontCache.has(weight)) {
+    fontCache.set(
+      weight,
+      readFile(path.join(process.cwd(), 'assets', 'fonts', `Archivo-${weight}.ttf`))
+        .then((b) => b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer)
+        .catch(() => googleFont(weight)),
+    );
+  }
+  return fontCache.get(weight)!;
+}
+
+async function googleFont(weight: Weight) {
   try {
     const css = await fetch(`https://fonts.googleapis.com/css2?family=Archivo:wght@${weight}&display=swap`, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(4000) }).then((r) => r.text());
     const url = css.match(/src: url\(([^)]+)\) format\('(?:truetype|woff)'\)/)?.[1] ?? css.match(/url\(([^)]+\.(?:ttf|woff))\)/)?.[1];
@@ -67,7 +85,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const [w, h] = SIZES[size];
   const story = size === 'story';
   const link = size === 'link';
-  const [heavy, bold, bg] = await Promise.all([font(800), font(700), photo(c.creative.photos[size], request.nextUrl.origin)]);
+  const [heavy, bold, semi, bg] = await Promise.all([font(800), font(700), font(600), photo(c.creative.photos[size], request.nextUrl.origin)]);
   // Where the dark band sits: over the side away from the photo's subject.
   const focus = c.creative.focus;
   const shade =
@@ -76,10 +94,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       : focus === 'right'
         ? `linear-gradient(90deg, rgba(8,14,26,0.98) 0%, rgba(8,14,26,0.93) 45%, rgba(8,14,26,0.55) 100%)`
         : `linear-gradient(90deg, rgba(8,14,26,0.97) 0%, rgba(8,14,26,0.87) 55%, rgba(8,14,26,0.62) 100%)`;
-  const fonts = [heavy ? { name: 'Archivo', data: heavy, weight: 800 as const } : null, bold ? { name: 'Archivo', data: bold, weight: 700 as const } : null].filter(Boolean) as { name: string; data: ArrayBuffer; weight: 700 | 800 }[];
-  const pad = link ? 56 : 72;
-  const headlineSize = link ? 60 : story ? 96 : 82;
-  const subSize = link ? 26 : story ? 40 : 34;
+  const fonts = (
+    [
+      [heavy, 800],
+      [bold, 700],
+      [semi, 600],
+    ] as const
+  )
+    .filter(([data]) => data)
+    .map(([data, weight]) => ({ name: 'Archivo', data: data as ArrayBuffer, weight, style: 'normal' as const }));
+  const pad = link ? 52 : 72;
+  // Sized so the longest headline sits on two lines and a long name still fits beside the phone.
+  const headlineSize = link ? 56 : story ? 94 : 80;
+  const subSize = link ? 24 : story ? 38 : 32;
+  const nameSize = (link ? 24 : 31) - (v.name.length > 24 ? (link ? 3 : 4) : 0);
 
   return new ImageResponse(
     (
@@ -103,38 +131,41 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ) : null}
         <div style={{ position: 'absolute', top: 0, left: 0, width: w, height: h, display: 'flex', background: bg ? shade : 'transparent' }} />
         <div style={{ position: 'absolute', left: 0, bottom: 0, width: w, height: 10, display: 'flex', background: c.creative.accent }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', fontSize: link ? 26 : 32, fontWeight: 800, letterSpacing: 5 }}>
-            <span>REVOL</span>
-            <div style={{ display: 'flex', width: 10, height: 10, borderRadius: 10, background: '#2f74e3', margin: '0 10px 4px' }} />
+        {/* Top bar: the mark and the licensing line, centered on one line. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: link ? 26 : 32, fontWeight: 800, letterSpacing: link ? 4 : 5 }}>REVOL</span>
+            <div style={{ display: 'flex', width: link ? 8 : 10, height: link ? 8 : 10, borderRadius: 10, background: '#2f74e3', margin: link ? '0 9px' : '0 11px' }} />
             <span style={{ fontSize: link ? 14 : 17, letterSpacing: 4, color: '#c3cfe0', fontWeight: 700 }}>INSURANCE</span>
           </div>
-          <div style={{ display: 'flex', fontSize: link ? 18 : 22, color: '#c3cfe0', fontWeight: 700 }}>Independent · MD · VA · DC</div>
+          <div style={{ display: 'flex', fontSize: link ? 17 : 21, color: '#c3cfe0', fontWeight: 600, letterSpacing: 0.5 }}>Independent · MD · VA · DC</div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: story ? 28 : 20, maxWidth: link ? 760 : 940, marginTop: link ? 0 : 'auto', marginBottom: link ? 0 : story ? 56 : 40 }}>
-          <div style={{ display: 'flex', fontSize: headlineSize, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2, textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>{c.creative.headline}</div>
-          <div style={{ display: 'flex', fontSize: subSize, lineHeight: 1.25, color: '#eef3fa', fontWeight: 700, textShadow: '0 1px 12px rgba(0,0,0,0.6)' }}>{c.creative.sub}</div>
-          <div style={{ display: 'flex', marginTop: story ? 20 : 8 }}>
-            <div style={{ display: 'flex', background: '#fff', color: '#0b1424', borderRadius: 999, padding: link ? '14px 28px' : '20px 36px', fontSize: link ? 24 : 32, fontWeight: 800 }}>{c.creative.cta} →</div>
+        {/* The offer. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: story ? 26 : link ? 14 : 20, maxWidth: link ? 760 : story ? 900 : 920, marginTop: link ? 0 : 'auto', marginBottom: link ? 0 : story ? 64 : 44 }}>
+          <div style={{ display: 'flex', fontSize: headlineSize, fontWeight: 800, lineHeight: 1.04, letterSpacing: link ? -1.2 : -1.8, textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>{c.creative.headline}</div>
+          <div style={{ display: 'flex', fontSize: subSize, lineHeight: 1.3, color: '#e6edf7', fontWeight: 600, textShadow: '0 1px 12px rgba(0,0,0,0.6)' }}>{c.creative.sub}</div>
+          <div style={{ display: 'flex', marginTop: story ? 18 : link ? 6 : 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#fff', color: '#0b1424', borderRadius: 999, padding: link ? '13px 26px' : '19px 34px', fontSize: link ? 22 : 30, fontWeight: 800 }}>{c.creative.cta} →</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '2px solid rgba(255,255,255,0.28)', paddingTop: link ? 20 : 28 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            {producer?.headshot ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={producer.headshot} alt="" width={link ? 64 : 92} height={link ? 64 : 92} style={{ borderRadius: 999, objectFit: 'cover', border: '3px solid rgba(255,255,255,0.5)' }} />
-            ) : null}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', fontSize: link ? 24 : 32, fontWeight: 800 }}>{v.name}</div>
-              <div style={{ display: 'flex', fontSize: link ? 18 : 24, color: '#c3cfe0', fontWeight: 700 }}>{producer?.npn ? `Licensed agent · NPN ${producer.npn}` : AGENCY.legalName}</div>
+        {/* Who to call: the agent and number on one row, the page address under it, so nothing runs off the edge. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: link ? 10 : 14, borderTop: '2px solid rgba(255,255,255,0.28)', paddingTop: link ? 18 : 26 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: link ? 14 : 18, flex: 1, minWidth: 0 }}>
+              {producer?.headshot ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={producer.headshot} alt="" width={link ? 56 : 84} height={link ? 56 : 84} style={{ borderRadius: 999, objectFit: 'cover', border: '3px solid rgba(255,255,255,0.5)', flexShrink: 0 }} />
+              ) : null}
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: 2 }}>
+                <div style={{ display: 'flex', fontSize: nameSize, fontWeight: 800, lineHeight: 1.1 }}>{v.name}</div>
+                <div style={{ display: 'flex', fontSize: link ? 16 : 21, color: '#c3cfe0', fontWeight: 600 }}>{producer?.npn ? `Licensed agent · NPN ${producer.npn}` : AGENCY.legalName}</div>
+              </div>
             </div>
+            <div style={{ display: 'flex', fontSize: link ? 26 : 34, fontWeight: 800, flexShrink: 0, letterSpacing: 0.5 }}>{v.phone}</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <div style={{ display: 'flex', fontSize: link ? 26 : 34, fontWeight: 800 }}>{v.phone}</div>
-            <div style={{ display: 'flex', fontSize: link ? 18 : 24, color: '#c3cfe0', fontWeight: 700 }}>{v.short}</div>
-          </div>
+          <div style={{ display: 'flex', fontSize: link ? 16 : 21, color: '#c3cfe0', fontWeight: 600, letterSpacing: 0.3 }}>{v.short}</div>
         </div>
       </div>
     ),
