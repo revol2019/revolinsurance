@@ -4,6 +4,8 @@ import { AGENCY } from '@/lib/agency';
 import { campaignFor, isCampaignKey } from '@/lib/campaigns';
 import { mergeVars } from '@/components/landing/CampaignLanding';
 import { getProducer } from '@/lib/producers';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 export const revalidate = 3600;
 
@@ -33,6 +35,24 @@ async function font(weight: 700 | 800) {
   }
 }
 
+/**
+ * The photo behind the ad, as a data URL so the renderer never has to fetch it.
+ * Read from public/ first (works locally and on Vercel), then from the site
+ * itself; if both fail the ad renders on the gradient alone.
+ */
+async function photo(name: string, origin: string): Promise<string | null> {
+  try {
+    const buf = await readFile(path.join(process.cwd(), 'public', 'campaigns', name + '.jpg'));
+    return 'data:image/jpeg;base64,' + buf.toString('base64');
+  } catch {}
+  try {
+    const buf = await fetch(origin + '/campaigns/' + name + '.jpg', { signal: AbortSignal.timeout(4000) }).then((r) => (r.ok ? r.arrayBuffer() : null));
+    return buf ? 'data:image/jpeg;base64,' + Buffer.from(buf).toString('base64') : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ campaign: string }> }) {
   const { campaign } = await params;
   if (!isCampaignKey(campaign)) return new Response('Not found', { status: 404 });
@@ -47,7 +67,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const [w, h] = SIZES[size];
   const story = size === 'story';
   const link = size === 'link';
-  const [heavy, bold] = await Promise.all([font(800), font(700)]);
+  const [heavy, bold, bg] = await Promise.all([font(800), font(700), photo(c.creative.photos[size], request.nextUrl.origin)]);
+  // Where the dark band sits: over the side away from the photo's subject.
+  const focus = c.creative.focus;
+  const shade =
+    story || size === 'square'
+      ? `linear-gradient(180deg, rgba(8,14,26,0.7) 0%, rgba(8,14,26,0.35) 30%, rgba(8,14,26,0.82) 55%, rgba(8,14,26,0.98) 100%)`
+      : focus === 'right'
+        ? `linear-gradient(90deg, rgba(8,14,26,0.98) 0%, rgba(8,14,26,0.93) 45%, rgba(8,14,26,0.55) 100%)`
+        : `linear-gradient(90deg, rgba(8,14,26,0.97) 0%, rgba(8,14,26,0.87) 55%, rgba(8,14,26,0.62) 100%)`;
   const fonts = [heavy ? { name: 'Archivo', data: heavy, weight: 800 as const } : null, bold ? { name: 'Archivo', data: bold, weight: 700 as const } : null].filter(Boolean) as { name: string; data: ArrayBuffer; weight: 700 | 800 }[];
   const pad = link ? 56 : 72;
   const headlineSize = link ? 60 : story ? 96 : 82;
@@ -65,9 +93,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           padding: pad,
           fontFamily: 'Archivo',
           color: '#fff',
+          position: 'relative',
           background: `linear-gradient(160deg, #0b1424 0%, #10203a 55%, ${c.creative.accent} 140%)`,
         }}
       >
+        {bg ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bg} alt="" width={w} height={h} style={{ position: 'absolute', top: 0, left: 0, width: w, height: h, objectFit: 'cover', objectPosition: focus === 'right' ? '70% 40%' : focus === 'left' ? '30% 40%' : '50% 45%' }} />
+        ) : null}
+        <div style={{ position: 'absolute', top: 0, left: 0, width: w, height: h, display: 'flex', background: bg ? shade : 'transparent' }} />
+        <div style={{ position: 'absolute', left: 0, bottom: 0, width: w, height: 10, display: 'flex', background: c.creative.accent }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', fontSize: link ? 26 : 32, fontWeight: 800, letterSpacing: 5 }}>
             <span>REVOL</span>
@@ -77,15 +112,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           <div style={{ display: 'flex', fontSize: link ? 18 : 22, color: '#c3cfe0', fontWeight: 700 }}>Independent · MD · VA · DC</div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: story ? 28 : 20, maxWidth: link ? 760 : 940 }}>
-          <div style={{ display: 'flex', fontSize: headlineSize, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2 }}>{c.creative.headline}</div>
-          <div style={{ display: 'flex', fontSize: subSize, lineHeight: 1.25, color: '#dbe4f0', fontWeight: 700 }}>{c.creative.sub}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: story ? 28 : 20, maxWidth: link ? 760 : 940, marginTop: link ? 0 : 'auto', marginBottom: link ? 0 : story ? 56 : 40 }}>
+          <div style={{ display: 'flex', fontSize: headlineSize, fontWeight: 800, lineHeight: 1.02, letterSpacing: -2, textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>{c.creative.headline}</div>
+          <div style={{ display: 'flex', fontSize: subSize, lineHeight: 1.25, color: '#eef3fa', fontWeight: 700, textShadow: '0 1px 12px rgba(0,0,0,0.6)' }}>{c.creative.sub}</div>
           <div style={{ display: 'flex', marginTop: story ? 20 : 8 }}>
             <div style={{ display: 'flex', background: '#fff', color: '#0b1424', borderRadius: 999, padding: link ? '14px 28px' : '20px 36px', fontSize: link ? 24 : 32, fontWeight: 800 }}>{c.creative.cta} →</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '2px solid rgba(255,255,255,0.18)', paddingTop: link ? 20 : 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '2px solid rgba(255,255,255,0.28)', paddingTop: link ? 20 : 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             {producer?.headshot ? (
               // eslint-disable-next-line @next/next/no-img-element
