@@ -68,7 +68,16 @@ export type Campaign = {
   /** The small print under the offer. Always shown. */
   disclaimer: string;
   /** The line on ad images. Short. */
-  creative: { headline: string; sub: string; cta: string; accent: string };
+  creative: {
+    headline: string;
+    sub: string;
+    cta: string;
+    accent: string;
+    /** Photo behind each ad size, from public/campaigns. square and story share one; link gets a landscape. */
+    photos: { square: string; story: string; link: string };
+    /** Where the photo's subject sits, so the text is placed on the other side. */
+    focus: 'left' | 'right' | 'center';
+  };
   /** Ad copy per network. All with merge fields. */
   meta: { primaryText: string[]; headlines: string[]; descriptions: string[] };
   google: { headlines: string[]; descriptions: string[]; keywords: string[]; negatives: string[] };
@@ -86,7 +95,7 @@ export const CAMPAIGNS: Record<CampaignKey, Campaign> = {
     pitch: 'Parents adding a teen or college-age driver are the most motivated shoppers in auto insurance. Their rate just doubled.',
     audience: 'Parents of 16–24 year olds, and young drivers getting their own policy.',
     path: 'auto',
-    heroImage: '/photos/agent-driving.jpg',
+    heroImage: '/campaigns/teen-driver-daughter.webp',
     headline: 'Adding a driver under 25? <em>Don’t just accept the new rate.</em>',
     sub: 'Every carrier prices a young driver differently, and most families never find out by how much. {{first}} shops it across {{carriers}} carriers and lines up every young-driver discount you qualify for.',
     trust: ['Good-student, driver-training and distant-student discounts', 'Telematics options that reward safe driving', 'No account, no spam, nothing sold as a lead'],
@@ -111,7 +120,7 @@ export const CAMPAIGNS: Record<CampaignKey, Campaign> = {
       { q: 'Will shopping affect my current policy?', a: 'No. Nothing changes until you decide. We quote first and you compare it to what you have.' },
     ],
     disclaimer: 'Savings vary by household, driving record, vehicles and carrier, and are not guaranteed. Discounts are set by each carrier and subject to eligibility. REVOL Financial Group, LLC is an independent insurance agency.',
-    creative: { headline: 'Teen driver? Your rate just doubled.', sub: 'See what the right carrier charges, in 60 seconds.', cta: 'Compare rates', accent: '#1657c8' },
+    creative: { headline: 'Teen driver? Your rate just doubled.', sub: 'See what the right carrier charges, in 60 seconds.', cta: 'Compare rates', accent: '#1657c8', photos: { square: 'teen-driver-daughter', story: 'teen-driver-daughter', link: 'teen-driver-son' }, focus: 'right' },
     meta: {
       primaryText: [
         'Adding a teen to your car insurance? The renewal letter can be a shock. The same 16-year-old costs twice as much at one carrier as another, and most families never see the comparison. I shop it across {{carriers}} carriers and line up every young-driver discount: good student, driver training, away at school, safe-driving apps. 60 seconds to see your range, no spam, nothing sold as a lead. {{short}}',
@@ -220,7 +229,7 @@ export const CAMPAIGNS: Record<CampaignKey, Campaign> = {
     pitch: 'The easiest yes in insurance: send me what you have and I will tell you if you are overpaying or underinsured. No shopping required from them.',
     audience: 'Anyone with a home or auto policy who has not shopped it in two years. Especially homeowners and past real estate clients.',
     path: 'bundle',
-    heroImage: '/lp/policy-review.webp',
+    heroImage: '/campaigns/family-roof.webp',
     headline: 'Get a <em>free second opinion</em> on your home and auto insurance.',
     sub: '{{first}} reads your current policies line by line, shops the same coverage across {{carriers}} carriers, and tells you honestly whether to stay or move. Most households we review are overpaying, underinsured, or both.',
     trust: ['Takes 60 seconds to start, nothing to cancel', 'Same coverage compared, not a stripped-down quote', 'Free. Carriers pay us, not you'],
@@ -245,7 +254,7 @@ export const CAMPAIGNS: Record<CampaignKey, Campaign> = {
       { q: 'Will you call me a hundred times?', a: 'No. You hear from {{first}} and only {{first}}. Your information is not sold or shared with other agents.' },
     ],
     disclaimer: 'Savings are not guaranteed and vary by policy, coverage and carrier. Figures quoted describe typical results from REVOL Insurance policy reviews and are not a promise for any household. REVOL Financial Group, LLC is an independent insurance agency.',
-    creative: { headline: 'Free policy review.', sub: 'Most households are overpaying, underinsured, or both.', cta: 'Get my review', accent: '#0e6b4a' },
+    creative: { headline: 'Free policy review.', sub: 'Most households are overpaying, underinsured, or both.', cta: 'Get my review', accent: '#0e6b4a', photos: { square: 'family-roof', story: 'family-roof', link: 'umbrella-house' }, focus: 'center' },
     meta: {
       primaryText: [
         'When did you last have someone actually read your home and auto policies? Not a quote. A review. I look at your limits, your deductibles, the discounts you are missing, and what {{carriers}} carriers would charge for the same coverage. Then I tell you to stay or move. It is free, it takes a photo of your dec page to start, and about a third of the time my answer is "keep what you have." {{short}}',
@@ -347,7 +356,7 @@ export const CAMPAIGNS: Record<CampaignKey, Campaign> = {
     pitch: 'The renewal letter is the strongest buying signal in insurance, and it lands in every mailbox twice a year. This campaign catches people in the week they are angry.',
     audience: 'Anyone who just opened a renewal with a higher premium. Highest intent on Google search; strong on social during renewal-heavy months.',
     path: 'bundle',
-    heroImage: '/lp/hero-umbrella-home.webp',
+    heroImage: '/campaigns/house-storm.webp',
     headline: 'Renewal went up again? <em>You don’t have to take it.</em>',
     sub: 'Carriers raise renewals a little at a time and count on you not checking. {{first}} prices the same coverage across {{carriers}} carriers in about 60 seconds, and moves you if moving wins.',
     trust: ['Same coverage compared, not a cheaper policy', 'Switching is handled for you, no gap in coverage', 'Free. Carriers pay us, not you'],
@@ -372,7 +381,7 @@ export const CAMPAIGNS: Record<CampaignKey, Campaign> = {
       { q: 'How long does switching take?', a: 'Usually a few days. {{first}} binds the new policy to start the day the old one ends and sends the cancellation for you.' },
     ],
     disclaimer: 'Savings are not guaranteed and vary by policy, coverage, carrier and claims history. Cancellation terms are set by your current carrier. REVOL Financial Group, LLC is an independent insurance agency.',
-    creative: { headline: 'Renewal went up again?', sub: 'Price the same coverage across {{carriers}} carriers in 60 seconds.', cta: 'Check my rate', accent: '#b3261e' },
+    creative: { headline: 'Renewal went up again?', sub: 'Price the same coverage across {{carriers}} carriers in 60 seconds.', cta: 'Check my rate', accent: '#b3261e', photos: { square: 'house-storm', story: 'house-storm', link: 'suv-crash' }, focus: 'center' },
     meta: {
       primaryText: [
         'Opened your renewal and it went up again? Carriers raise renewals a little at a time and count on you not checking. I price the same coverage across {{carriers}} carriers in about 60 seconds. If your carrier is still competitive, I tell you. If not, I move you with no gap in coverage. Nothing sold as a lead, no call center. {{short}}',
