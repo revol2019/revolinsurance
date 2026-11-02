@@ -72,10 +72,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const focus = c.creative.focus;
   const shade =
     story || size === 'square'
-      ? `linear-gradient(180deg, rgba(8,14,26,0.5) 0%, rgba(8,14,26,0.05) 30%, rgba(8,14,26,0.6) 55%, rgba(8,14,26,0.95) 100%)`
+      ? `linear-gradient(180deg, rgba(8,14,26,0.6) 0%, rgba(8,14,26,0.2) 30%, rgba(8,14,26,0.72) 55%, rgba(8,14,26,0.97) 100%)`
       : focus === 'right'
-        ? `linear-gradient(90deg, rgba(8,14,26,0.95) 0%, rgba(8,14,26,0.85) 45%, rgba(8,14,26,0.25) 100%)`
-        : `linear-gradient(90deg, rgba(8,14,26,0.92) 0%, rgba(8,14,26,0.7) 55%, rgba(8,14,26,0.35) 100%)`;
+        ? `linear-gradient(90deg, rgba(8,14,26,0.97) 0%, rgba(8,14,26,0.9) 45%, rgba(8,14,26,0.4) 100%)`
+        : `linear-gradient(90deg, rgba(8,14,26,0.95) 0%, rgba(8,14,26,0.8) 55%, rgba(8,14,26,0.5) 100%)`;
   const fonts = [heavy ? { name: 'Archivo', data: heavy, weight: 800 as const } : null, bold ? { name: 'Archivo', data: bold, weight: 700 as const } : null].filter(Boolean) as { name: string; data: ArrayBuffer; weight: 700 | 800 }[];
   const pad = link ? 56 : 72;
   const headlineSize = link ? 60 : story ? 96 : 82;
